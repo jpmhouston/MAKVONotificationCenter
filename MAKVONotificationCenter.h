@@ -83,11 +83,39 @@ enum
                            userInfo:(id)userInfo
                             options:(NSKeyValueObservingOptions)options;
 
+- (id<MAKVOObservation>)addObserver:(id)observer
+                            keyPath:(id<MAKVOKeyPathSet>)keyPath
+                           selector:(SEL)selector
+                            options:(NSKeyValueObservingOptions)options;
+
+- (id<MAKVOObservation>)addObserver:(id)observer
+                            keyPath:(id<MAKVOKeyPathSet>)keyPath
+                           selector:(SEL)selector
+                           userInfo:(id)userInfo;
+
+- (id<MAKVOObservation>)addObserver:(id)observer
+                            keyPath:(id<MAKVOKeyPathSet>)keyPath
+                           selector:(SEL)selector;
+
 - (id<MAKVOObservation>)observeTarget:(id)target
                               keyPath:(id<MAKVOKeyPathSet>)keyPath
                              selector:(SEL)selector
                              userInfo:(id)userInfo
                               options:(NSKeyValueObservingOptions)options;
+
+- (id<MAKVOObservation>)observeTarget:(id)target
+                              keyPath:(id<MAKVOKeyPathSet>)keyPath
+                             selector:(SEL)selector
+                              options:(NSKeyValueObservingOptions)options;
+
+- (id<MAKVOObservation>)observeTarget:(id)target
+                              keyPath:(id<MAKVOKeyPathSet>)keyPath
+                             selector:(SEL)selector
+                             userInfo:(id)userInfo;
+
+- (id<MAKVOObservation>)observeTarget:(id)target
+                              keyPath:(id<MAKVOKeyPathSet>)keyPath
+                             selector:(SEL)selector;
 
 #if NS_BLOCKS_AVAILABLE
 
@@ -95,14 +123,25 @@ enum
                                       options:(NSKeyValueObservingOptions)options
                                         block:(void (^)(MAKVONotification *notification))block;
 
+- (id<MAKVOObservation>)addObservationKeyPath:(id<MAKVOKeyPathSet>)keyPath
+                                        block:(void (^)(MAKVONotification *notification))block;
+
 - (id<MAKVOObservation>)addObserver:(id)observer
                             keyPath:(id<MAKVOKeyPathSet>)keyPath
                             options:(NSKeyValueObservingOptions)options
                               block:(void (^)(MAKVONotification *notification))block;
 
+- (id<MAKVOObservation>)addObserver:(id)observer
+                            keyPath:(id<MAKVOKeyPathSet>)keyPath
+                              block:(void (^)(MAKVONotification *notification))block;
+
 - (id<MAKVOObservation>)observeTarget:(id)target
                               keyPath:(id<MAKVOKeyPathSet>)keyPath
                               options:(NSKeyValueObservingOptions)options
+                                block:(void (^)(MAKVONotification *notification))block;
+
+- (id<MAKVOObservation>)observeTarget:(id)target
+                              keyPath:(id<MAKVOKeyPathSet>)keyPath
                                 block:(void (^)(MAKVONotification *notification))block;
 
 #endif
