@@ -128,6 +128,8 @@ enum
 //						  ofObject:(id)target
 //							change:(NSDictionary *)change
 //						  userInfo:(id)userInfo;
+// or alternately this signature:
+//	- (void)observeValueForNotification:(MAKVONotification *)notification;
 
 // If target is an NSArray, every object in the collection will be observed,
 //	per -addObserver:toObjectsAtIndexes:.

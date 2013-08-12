@@ -33,6 +33,12 @@
     _triggered = YES;
 }
 
+- (void)observePath:(MAKVONotification *)notification
+{
+//	STAssertTrue([notification isKindOfClass:[MAKVONotification class]], @"1-parameter observation method passed wrong parameter, expected a MAKVONotification, got %@");
+    _triggered = YES;
+}
+
 - (void)observePath2:(NSString *)keyPath object:(id)object change:(NSDictionary *)change info:(id)info
 {
 //	STAssertEqualObjects(info, @"test", @"User info was wrong: expected \"test\", got %@", info);
@@ -96,6 +102,17 @@
         target.toggle = NO;
         STAssertFalse(observer->_triggered, @"Basic observation was not removed");
         STAssertFalse(observation.isValid, @"Basic observation was not invalidated");
+        
+        observer->_triggered = NO;
+        observation = [target addObserver:observer keyPath:@"toggle" selector:@selector(observePath:) userInfo:@"test" options:0];
+        target.toggle = YES;
+        STAssertTrue(observer->_triggered, @"Basic observation (notification selector) was not fired");
+        
+        observer->_triggered = NO;
+        [target removeObserver:observer keyPath:@"toggle" selector:@selector(observePath:)];
+        target.toggle = NO;
+        STAssertFalse(observer->_triggered, @"Basic observation (notification selector) was not removed");
+        STAssertFalse(observation.isValid, @"Basic observation (notification selector) was not invalidated");
         
         observer->_triggered = NO;
         observation = [target addObserver:observer keyPath:@"toggle" options:0 block:^ (MAKVONotification *notification) { observer->_triggered = YES; }];

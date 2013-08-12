@@ -133,9 +133,18 @@ static char MAKVONotificationHelperMagicContext = 0;
         
 #if NS_BLOCKS_AVAILABLE
         if (_selector)
+        {
 #endif
-            ((void (*)(id, SEL, NSString *, id, NSDictionary *, id))objc_msgSend)(_observer, _selector, keyPath, object, change, _userInfo);
+            NSMethodSignature *signature = [[_observer class] instanceMethodSignatureForSelector:_selector];
+            if ([signature numberOfArguments] == 3) // 2 hidden arguments + 1 declared one
+            {
+                MAKVONotification		*notification = [[MAKVONotification alloc] initWithObserver:_observer object:object keyPath:keyPath change:change];
+                ((void (*)(id, SEL, MAKVONotification *))objc_msgSend)(_observer, _selector, notification);
+            }
+            else
+                ((void (*)(id, SEL, NSString *, id, NSDictionary *, id))objc_msgSend)(_observer, _selector, keyPath, object, change, _userInfo);
 #if NS_BLOCKS_AVAILABLE
+        }
         else
         {
             MAKVONotification		*notification = nil;
