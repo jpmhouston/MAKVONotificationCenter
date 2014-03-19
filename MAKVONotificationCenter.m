@@ -25,10 +25,11 @@ static NSMutableSet			*MAKVONotificationCenter_swizzledClasses = nil;
     NSDictionary			*change;
 }
 
-- (id)initWithObserver:(id)observer_ object:(id)target_ keyPath:(NSString *)keyPath_ change:(NSDictionary *)change_;
+- (id)initWithObserver:(id)observer_ object:(id)target_ keyPath:(NSString *)keyPath_ change:(NSDictionary *)change_ observation:(id<MAKVOObservation>)observation_;
 
 @property(copy,readwrite)	NSString			*keyPath;
 @property(assign,readwrite)	id					observer, target;
+@property(weak,readwrite)	id<MAKVOObservation> observation;
 
 @end
 
@@ -37,10 +38,11 @@ static NSMutableSet			*MAKVONotificationCenter_swizzledClasses = nil;
 
 @synthesize keyPath, observer, target;
 
-- (id)initWithObserver:(id)observer_ object:(id)target_ keyPath:(NSString *)keyPath_ change:(NSDictionary *)change_
+- (id)initWithObserver:(id)observer_ object:(id)target_ keyPath:(NSString *)keyPath_ change:(NSDictionary *)change_ observation:(id<MAKVOObservation>)observation_
 {
     if ((self = [super init]))
     {
+        self.observation = observation_;
         self.observer = observer_;
         self.target = target_;
         self.keyPath = keyPath_;
@@ -93,7 +95,7 @@ static char MAKVONotificationHelperMagicContext = 0;
         _options = options;
         
         // Pass only Apple's options to Apple's code.
-        options &= ~(MAKeyValueObservingOptionUnregisterManually);
+        options &= ~(MAKeyValueObservingOptionUnregisterManually | MAKeyValueObservingOptionOnce);
         
         for (NSString *keyPath in _keyPaths)
         {
@@ -138,7 +140,7 @@ static char MAKVONotificationHelperMagicContext = 0;
             NSMethodSignature *signature = [[_observer class] instanceMethodSignatureForSelector:_selector];
             if ([signature numberOfArguments] == 3) // 2 hidden arguments + 1 declared one
             {
-                MAKVONotification		*notification = [[MAKVONotification alloc] initWithObserver:_observer object:object keyPath:keyPath change:change];
+                MAKVONotification		*notification = [[MAKVONotification alloc] initWithObserver:_observer object:object keyPath:keyPath change:change observation:self];
                 ((void (*)(id, SEL, MAKVONotification *))objc_msgSend)(_observer, _selector, notification);
             }
             else
@@ -151,10 +153,12 @@ static char MAKVONotificationHelperMagicContext = 0;
 
             // Pass object instead of _target as the notification object so that
             //	array observations will work as expected.
-            notification = [[MAKVONotification alloc] initWithObserver:_observer object:object keyPath:keyPath change:change];
+            notification = [[MAKVONotification alloc] initWithObserver:_observer object:object keyPath:keyPath change:change observation:self];
             ((void (^)(MAKVONotification *))_userInfo)(notification);
         }
 #endif
+        if (_options & MAKeyValueObservingOptionOnce)
+            [self deregister];
     }
     else
     {

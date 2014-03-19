@@ -24,6 +24,10 @@ enum
     //	removing the observation WILL throw KVO errors to the console and cause
     //	crashes!
     MAKeyValueObservingOptionUnregisterManually		= 0x80000000,
+    
+    // Pass this flag to de-register the observation after it fires the
+    //  first time.
+    MAKeyValueObservingOptionOnce	            	= 0x40000000,
 };
 
 /******************************************************************************/
@@ -58,7 +62,7 @@ enum
 @property(strong,readonly)	id __attribute__((ns_returns_not_retained)) newValue;
 @property(strong,readonly)	NSIndexSet			*indexes;
 @property(assign,readonly)	BOOL				isPrior;
-
+@property(weak,readonly)	id<MAKVOObservation> observation;
 @end
 
 /******************************************************************************/
