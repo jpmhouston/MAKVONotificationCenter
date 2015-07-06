@@ -215,7 +215,7 @@
 			name = "MAKVONotificationCenter-MacOSTests";
 			productName = "MAKVONotificationCenter-MacOSTests";
 			productReference = FAEC6D7E148754C4000587CA /* MAKVONotificationCenter-MacOSTests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 		FAEC6DA014875C66000587CA /* MAKVONotificationCenter-iOS */ = {
 			isa = PBXNativeTarget;
@@ -251,13 +251,15 @@
 			name = "MAKVONotificationCenter-iOSTests";
 			productName = "MAKVONotificationCenter-iOSTests";
 			productReference = FAEC6DAF14875C66000587CA /* MAKVONotificationCenter-iOSTests.octest */;
-			productType = "com.apple.product-type.bundle";
+			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+			};
 			buildConfigurationList = 1DEB927808733DD40010E9CD /* Build configuration list for PBXProject "MAKVONotificationCenter" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
@@ -492,6 +494,7 @@
 				FRAMEWORK_SEARCH_PATHS = "$(DEVELOPER_LIBRARY_DIR)/Frameworks";
 				INFOPLIST_FILE = "Tests-Info.plist";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				OTHER_CFLAGS = "-DSENTEST_IGNORE_DEPRECATION_WARNING";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				WRAPPER_EXTENSION = octest;
@@ -505,6 +508,7 @@
 				FRAMEWORK_SEARCH_PATHS = "$(DEVELOPER_LIBRARY_DIR)/Frameworks";
 				INFOPLIST_FILE = "Tests-Info.plist";
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				OTHER_CFLAGS = "-DSENTEST_IGNORE_DEPRECATION_WARNING";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				WRAPPER_EXTENSION = octest;
@@ -548,6 +552,7 @@
 					"$(DEVELOPER_LIBRARY_DIR)/Frameworks",
 				);
 				INFOPLIST_FILE = "Tests-Info.plist";
+				OTHER_CFLAGS = "-DSENTEST_IGNORE_DEPRECATION_WARNING";
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-all_load",
@@ -567,6 +572,7 @@
 					"$(DEVELOPER_LIBRARY_DIR)/Frameworks",
 				);
 				INFOPLIST_FILE = "Tests-Info.plist";
+				OTHER_CFLAGS = "-DSENTEST_IGNORE_DEPRECATION_WARNING";
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-all_load",
