@@ -24,6 +24,10 @@ enum
     //	removing the observation WILL throw KVO errors to the console and cause
     //	crashes!
     MAKeyValueObservingOptionUnregisterManually		= 0x80000000,
+    
+    // Pass this flag to de-register the observation after it fires the
+    //  first time.
+    MAKeyValueObservingOptionOnce	            	= 0x40000000,
 };
 
 /******************************************************************************/
@@ -58,7 +62,7 @@ enum
 @property(strong,readonly)	id __attribute__((ns_returns_not_retained)) newValue;
 @property(strong,readonly)	NSIndexSet			*indexes;
 @property(assign,readonly)	BOOL				isPrior;
-
+@property(weak,readonly)	id<MAKVOObservation> observation;
 @end
 
 /******************************************************************************/
@@ -83,11 +87,39 @@ enum
                            userInfo:(id)userInfo
                             options:(NSKeyValueObservingOptions)options;
 
+- (id<MAKVOObservation>)addObserver:(id)observer
+                            keyPath:(id<MAKVOKeyPathSet>)keyPath
+                           selector:(SEL)selector
+                            options:(NSKeyValueObservingOptions)options;
+
+- (id<MAKVOObservation>)addObserver:(id)observer
+                            keyPath:(id<MAKVOKeyPathSet>)keyPath
+                           selector:(SEL)selector
+                           userInfo:(id)userInfo;
+
+- (id<MAKVOObservation>)addObserver:(id)observer
+                            keyPath:(id<MAKVOKeyPathSet>)keyPath
+                           selector:(SEL)selector;
+
 - (id<MAKVOObservation>)observeTarget:(id)target
                               keyPath:(id<MAKVOKeyPathSet>)keyPath
                              selector:(SEL)selector
                              userInfo:(id)userInfo
                               options:(NSKeyValueObservingOptions)options;
+
+- (id<MAKVOObservation>)observeTarget:(id)target
+                              keyPath:(id<MAKVOKeyPathSet>)keyPath
+                             selector:(SEL)selector
+                              options:(NSKeyValueObservingOptions)options;
+
+- (id<MAKVOObservation>)observeTarget:(id)target
+                              keyPath:(id<MAKVOKeyPathSet>)keyPath
+                             selector:(SEL)selector
+                             userInfo:(id)userInfo;
+
+- (id<MAKVOObservation>)observeTarget:(id)target
+                              keyPath:(id<MAKVOKeyPathSet>)keyPath
+                             selector:(SEL)selector;
 
 #if NS_BLOCKS_AVAILABLE
 
@@ -95,14 +127,25 @@ enum
                                       options:(NSKeyValueObservingOptions)options
                                         block:(void (^)(MAKVONotification *notification))block;
 
+- (id<MAKVOObservation>)addObservationKeyPath:(id<MAKVOKeyPathSet>)keyPath
+                                        block:(void (^)(MAKVONotification *notification))block;
+
 - (id<MAKVOObservation>)addObserver:(id)observer
                             keyPath:(id<MAKVOKeyPathSet>)keyPath
                             options:(NSKeyValueObservingOptions)options
                               block:(void (^)(MAKVONotification *notification))block;
 
+- (id<MAKVOObservation>)addObserver:(id)observer
+                            keyPath:(id<MAKVOKeyPathSet>)keyPath
+                              block:(void (^)(MAKVONotification *notification))block;
+
 - (id<MAKVOObservation>)observeTarget:(id)target
                               keyPath:(id<MAKVOKeyPathSet>)keyPath
                               options:(NSKeyValueObservingOptions)options
+                                block:(void (^)(MAKVONotification *notification))block;
+
+- (id<MAKVOObservation>)observeTarget:(id)target
+                              keyPath:(id<MAKVOKeyPathSet>)keyPath
                                 block:(void (^)(MAKVONotification *notification))block;
 
 #endif
@@ -128,6 +171,8 @@ enum
 //						  ofObject:(id)target
 //							change:(NSDictionary *)change
 //						  userInfo:(id)userInfo;
+// or alternately this signature:
+//	- (void)observeValueForNotification:(MAKVONotification *)notification;
 
 // If target is an NSArray, every object in the collection will be observed,
 //	per -addObserver:toObjectsAtIndexes:.

@@ -33,6 +33,12 @@
     _triggered = YES;
 }
 
+- (void)observePath:(MAKVONotification *)notification
+{
+//	STAssertTrue([notification isKindOfClass:[MAKVONotification class]], @"1-parameter observation method passed wrong parameter, expected a MAKVONotification, got %@");
+    _triggered = YES;
+}
+
 - (void)observePath2:(NSString *)keyPath object:(id)object change:(NSDictionary *)change info:(id)info
 {
 //	STAssertEqualObjects(info, @"test", @"User info was wrong: expected \"test\", got %@", info);
@@ -96,6 +102,17 @@
         target.toggle = NO;
         STAssertFalse(observer->_triggered, @"Basic observation was not removed");
         STAssertFalse(observation.isValid, @"Basic observation was not invalidated");
+        
+        observer->_triggered = NO;
+        observation = [target addObserver:observer keyPath:@"toggle" selector:@selector(observePath:) userInfo:@"test" options:0];
+        target.toggle = YES;
+        STAssertTrue(observer->_triggered, @"Basic observation (notification selector) was not fired");
+        
+        observer->_triggered = NO;
+        [target removeObserver:observer keyPath:@"toggle" selector:@selector(observePath:)];
+        target.toggle = NO;
+        STAssertFalse(observer->_triggered, @"Basic observation (notification selector) was not removed");
+        STAssertFalse(observation.isValid, @"Basic observation (notification selector) was not invalidated");
         
         observer->_triggered = NO;
         observation = [target addObserver:observer keyPath:@"toggle" options:0 block:^ (MAKVONotification *notification) { observer->_triggered = YES; }];
@@ -264,7 +281,7 @@
             STAssertEqualObjects(notification.newValue, [NSNumber numberWithBool:YES], @"Expected new value to be YES, got %@", notification.newValue);
             STAssertFalse(notification.isPrior, @"Expected prior flag to be NO, it wasn't.");
         }];
-//		[observation remove];	// unnecessary!
+		[observation remove];	// unnecessary! but here to avoid analyzer warning "value stored to 'observation' is never read"
     }
 }
 
@@ -569,6 +586,47 @@
                                                 block:^(MAKVONotification *notification) {}]];
         [observations addObject: [object addObserver:observer2 keyPath:@"self" options:0
                                                 block:^(MAKVONotification *notification) {}]];
+    }
+}
+
+- (void)testOnceOption
+{
+    @autoreleasepool
+    {
+        TestObject				*target = [[[TestObject alloc] init] autorelease];
+        TestObserver			*observer = [[[TestObserver alloc] init] autorelease];
+        id<MAKVOObservation>	observation = nil;
+        
+        observer->_triggered = NO;
+        observation = [target addObserver:observer keyPath:@"toggle" options:MAKeyValueObservingOptionOnce block:^ (MAKVONotification *notification) { observer->_triggered = YES; }];
+        target.toggle = YES;
+        STAssertTrue(observer->_triggered, @"Once option block observation was not fired");
+        
+        observer->_triggered = NO;
+        target.toggle = YES;
+        STAssertFalse(observer->_triggered, @"Once option block observation was not removed");
+        STAssertFalse(observation.isValid, @"Once option block observation was not invalidated");
+    }
+}
+
+- (void)testObservationPropertyInNotification
+{
+    @autoreleasepool
+    {
+        TestObject				*target = [[[TestObject alloc] init] autorelease];
+        TestObserver			*observer = [[[TestObserver alloc] init] autorelease];
+        id<MAKVOObservation>	observation = nil;
+        __block id<MAKVOObservation> observation2;
+        
+        observation = [target addObserver:observer keyPath:@"toggle" options:0 block:^ (MAKVONotification *notification) { observation2 = notification.observation; }];
+        target.toggle = YES;
+        STAssertEqualObjects(observation, observation2, @"Observation object property of notification parameter doesn't match what -addObserver:keyPath:options:block: returned");
+        [observation remove];
+        
+        observation = [target addObserver:observer keyPath:@"toggle" options:MAKeyValueObservingOptionOnce block:^ (MAKVONotification *notification) { observation2 = notification.observation; }];
+        target.toggle = YES;
+        STAssertEqualObjects(observation, observation2, @"Observation object property of notification parameter doesn't match what -addObserver:keyPath:options:block: returned when using Once option");
+        [observation remove]; // unnecessary! but here to avoid analyzer warning "value stored to 'observation' is never read"
     }
 }
 

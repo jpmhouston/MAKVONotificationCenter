@@ -25,10 +25,11 @@ static NSMutableSet			*MAKVONotificationCenter_swizzledClasses = nil;
     NSDictionary			*change;
 }
 
-- (id)initWithObserver:(id)observer_ object:(id)target_ keyPath:(NSString *)keyPath_ change:(NSDictionary *)change_;
+- (id)initWithObserver:(id)observer_ object:(id)target_ keyPath:(NSString *)keyPath_ change:(NSDictionary *)change_ observation:(id<MAKVOObservation>)observation_;
 
 @property(copy,readwrite)	NSString			*keyPath;
 @property(assign,readwrite)	id					observer, target;
+@property(weak,readwrite)	id<MAKVOObservation> observation;
 
 @end
 
@@ -37,10 +38,11 @@ static NSMutableSet			*MAKVONotificationCenter_swizzledClasses = nil;
 
 @synthesize keyPath, observer, target;
 
-- (id)initWithObserver:(id)observer_ object:(id)target_ keyPath:(NSString *)keyPath_ change:(NSDictionary *)change_
+- (id)initWithObserver:(id)observer_ object:(id)target_ keyPath:(NSString *)keyPath_ change:(NSDictionary *)change_ observation:(id<MAKVOObservation>)observation_
 {
     if ((self = [super init]))
     {
+        self.observation = observation_;
         self.observer = observer_;
         self.target = target_;
         self.keyPath = keyPath_;
@@ -93,7 +95,7 @@ static char MAKVONotificationHelperMagicContext = 0;
         _options = options;
         
         // Pass only Apple's options to Apple's code.
-        options &= ~(MAKeyValueObservingOptionUnregisterManually);
+        options &= ~(MAKeyValueObservingOptionUnregisterManually | MAKeyValueObservingOptionOnce);
         
         for (NSString *keyPath in _keyPaths)
         {
@@ -133,19 +135,30 @@ static char MAKVONotificationHelperMagicContext = 0;
         
 #if NS_BLOCKS_AVAILABLE
         if (_selector)
+        {
 #endif
-            ((void (*)(id, SEL, NSString *, id, NSDictionary *, id))objc_msgSend)(_observer, _selector, keyPath, object, change, _userInfo);
+            NSMethodSignature *signature = [[_observer class] instanceMethodSignatureForSelector:_selector];
+            if ([signature numberOfArguments] == 3) // 2 hidden arguments + 1 declared one
+            {
+                MAKVONotification		*notification = [[MAKVONotification alloc] initWithObserver:_observer object:object keyPath:keyPath change:change observation:self];
+                ((void (*)(id, SEL, MAKVONotification *))objc_msgSend)(_observer, _selector, notification);
+            }
+            else
+                ((void (*)(id, SEL, NSString *, id, NSDictionary *, id))objc_msgSend)(_observer, _selector, keyPath, object, change, _userInfo);
 #if NS_BLOCKS_AVAILABLE
+        }
         else
         {
             MAKVONotification		*notification = nil;
 
             // Pass object instead of _target as the notification object so that
             //	array observations will work as expected.
-            notification = [[MAKVONotification alloc] initWithObserver:_observer object:object keyPath:keyPath change:change];
+            notification = [[MAKVONotification alloc] initWithObserver:_observer object:object keyPath:keyPath change:change observation:self];
             ((void (^)(MAKVONotification *))_userInfo)(notification);
         }
 #endif
+        if (_options & MAKeyValueObservingOptionOnce)
+            [self deregister];
     }
     else
     {
@@ -363,10 +376,42 @@ static char MAKVONotificationHelperMagicContext = 0;
     return [[MAKVONotificationCenter defaultCenter] addObserver:observer object:self keyPath:keyPath selector:selector userInfo:userInfo options:options];
 }
 
+- (id<MAKVOObservation>)addObserver:(id)observer keyPath:(id<MAKVOKeyPathSet>)keyPath selector:(SEL)selector
+                            options:(NSKeyValueObservingOptions)options
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:observer object:self keyPath:keyPath selector:selector userInfo:nil options:options];
+}
+
+- (id<MAKVOObservation>)addObserver:(id)observer keyPath:(id<MAKVOKeyPathSet>)keyPath selector:(SEL)selector userInfo:(id)userInfo
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:observer object:self keyPath:keyPath selector:selector userInfo:userInfo options:0];
+}
+
+- (id<MAKVOObservation>)addObserver:(id)observer keyPath:(id<MAKVOKeyPathSet>)keyPath selector:(SEL)selector
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:observer object:self keyPath:keyPath selector:selector userInfo:nil options:0];
+}
+
 - (id<MAKVOObservation>)observeTarget:(id)target keyPath:(id<MAKVOKeyPathSet>)keyPath selector:(SEL)selector userInfo:(id)userInfo
                               options:(NSKeyValueObservingOptions)options
 {
     return [[MAKVONotificationCenter defaultCenter] addObserver:self object:target keyPath:keyPath selector:selector userInfo:userInfo options:options];
+}
+
+- (id<MAKVOObservation>)observeTarget:(id)target keyPath:(id<MAKVOKeyPathSet>)keyPath selector:(SEL)selector
+                              options:(NSKeyValueObservingOptions)options
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:self object:target keyPath:keyPath selector:selector userInfo:nil options:options];
+}
+
+- (id<MAKVOObservation>)observeTarget:(id)target keyPath:(id<MAKVOKeyPathSet>)keyPath selector:(SEL)selector userInfo:(id)userInfo
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:self object:target keyPath:keyPath selector:selector userInfo:userInfo options:0];
+}
+
+- (id<MAKVOObservation>)observeTarget:(id)target keyPath:(id<MAKVOKeyPathSet>)keyPath selector:(SEL)selector
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:self object:target keyPath:keyPath selector:selector userInfo:nil options:0];
 }
 
 #if NS_BLOCKS_AVAILABLE
@@ -378,16 +423,34 @@ static char MAKVONotificationHelperMagicContext = 0;
     return [[MAKVONotificationCenter defaultCenter] addObserver:nil object:self keyPath:keyPath options:options block:block];
 }
 
+- (id<MAKVOObservation>)addObservationKeyPath:(id<MAKVOKeyPathSet>)keyPath
+                                        block:(void (^)(MAKVONotification *notification))block
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:nil object:self keyPath:keyPath options:0 block:block];
+}
+
 - (id<MAKVOObservation>)addObserver:(id)observer keyPath:(id<MAKVOKeyPathSet>)keyPath options:(NSKeyValueObservingOptions)options
                               block:(void (^)(MAKVONotification *notification))block
 {
     return [[MAKVONotificationCenter defaultCenter] addObserver:observer object:self keyPath:keyPath options:options block:block];
 }
 
+- (id<MAKVOObservation>)addObserver:(id)observer keyPath:(id<MAKVOKeyPathSet>)keyPath
+                              block:(void (^)(MAKVONotification *notification))block
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:observer object:self keyPath:keyPath options:0 block:block];
+}
+
 - (id<MAKVOObservation>)observeTarget:(id)target keyPath:(id<MAKVOKeyPathSet>)keyPath options:(NSKeyValueObservingOptions)options
                                 block:(void (^)(MAKVONotification *notification))block
 {
     return [[MAKVONotificationCenter defaultCenter] addObserver:self object:target keyPath:keyPath options:options block:block];
+}
+
+- (id<MAKVOObservation>)observeTarget:(id)target keyPath:(id<MAKVOKeyPathSet>)keyPath
+                                block:(void (^)(MAKVONotification *notification))block
+{
+    return [[MAKVONotificationCenter defaultCenter] addObserver:self object:target keyPath:keyPath options:0 block:block];
 }
 
 #endif
